@@ -67,3 +67,5 @@ packages/
 /src/mersion/*.vsp
 
 /src/mersion/app/*.pack
+
+/src/mersion/asset/*.nvuser
