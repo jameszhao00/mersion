@@ -7,6 +7,7 @@
         {
             Value = value;
         }
+
         public float Value { get; private set; }
     }
 }

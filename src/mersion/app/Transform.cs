@@ -5,30 +5,30 @@ namespace app
 {
     public class Transform
     {
-        private Quaternion _rotation = Quaternion.Identity;
-        
-        public Quaternion Rotation
+        public override string ToString()
         {
-            get { return _rotation; }
-            private set { _rotation = value; }
+            return string.Format("Position: {2}, Forward: {0}, Up: {1}", Forward, Up, Position);
         }
+
+        public Transform()
+        {
+            Rotation = Quaternion.Identity;
+            Scale = 1;
+        }
+        public float Scale { get; set; }
+
+        public Quaternion Rotation { get; set; }
 
         public Vector3 Position { get; set; }
 
         public Vector3 Forward
         {
-            get
-            {
-                return Vector3.Normalize(Vector3.Transform(Vector3.UnitZ, Rotation));
-            }
+            get { return Vector3.Normalize(Vector3.Transform(Vector3.UnitZ, Rotation)); }
         }
 
         public Vector3 Up
         {
-            get
-            {
-                return Vector3.Normalize(Vector3.Transform(Vector3.UnitY, Rotation));
-            }
+            get { return Vector3.Normalize(Vector3.Transform(Vector3.UnitY, Rotation)); }
         }
 
         public Transform MoveLocal(Vector3 local)
@@ -40,8 +40,22 @@ namespace app
                 Position = Position + global
             };
         }
+
         public Transform RotateGlobal(Quaternion quat)
         {
+            //WARNING: These codes seem really fishy...
+            //I had to change their order randomly after recompiling sharpdx...
+            return new Transform
+            {
+                Rotation = quat * Rotation,
+                Position = Position
+            };
+        }
+
+        public Transform RotateLocal(Quaternion quat)
+        {
+            //WARNING: These codes seem really fishy...
+            //I had to change their order randomly after recompiling sharpdx...
             return new Transform
             {
                 Rotation = Rotation * quat,
@@ -49,14 +63,6 @@ namespace app
             };
         }
 
-        public Transform RotateLocal(Quaternion quat)
-        {
-            return new Transform
-            {
-                Rotation = quat*Rotation,
-                Position = Position
-            };
-        }
         public Transform RotateLocal(YawPitchRoll dp)
         {
             return RotateLocal(Quaternion.RotationYawPitchRoll(dp.Yaw.Value, dp.Pitch.Value, dp.Roll.Value));
@@ -66,19 +72,24 @@ namespace app
         {
             return RotateGlobal(Quaternion.RotationYawPitchRoll(dp.Yaw.Value, dp.Pitch.Value, dp.Roll.Value));
         }
-
-
+        public Transform UniformScale(float scale)
+        {
+            return new Transform
+            {
+                Position = Position,
+                Rotation = Rotation,
+                Scale = scale
+            };
+        }
         public Matrix Matrix()
         {
-            return SharpDX.Matrix.Translation(Position) * SharpDX.Matrix.RotationQuaternion(Rotation);
+            return SharpDX.Matrix.Scaling(Scale)*SharpDX.Matrix.RotationQuaternion(Rotation)*
+                   SharpDX.Matrix.Translation(Position);
         }
 
         public Vector3 Left
         {
-            get
-            {
-                return Vector3.Normalize(Vector3.Transform(- Vector3.UnitX, Rotation));
-            }
+            get { return Vector3.Normalize(Vector3.Transform(- Vector3.UnitX, Rotation)); }
         }
 
         public Transform ZeroRoll()
@@ -90,9 +101,10 @@ namespace app
                 return this;
             }
             var sign = Vector3.Dot(Vector3.Cross(expectedLeft, Left), Forward) > 0;
-            var angle = (float)Math.Acos(Vector3.Dot(expectedLeft, Left)) * (sign ? -1 :1);
-            var rotation = Quaternion.RotationAxis(Forward,0.1f * angle);
+            var angle = (float) Math.Acos(Vector3.Dot(expectedLeft, Left))*(sign ? -1 : 1);
+            var rotation = Quaternion.RotationAxis(Forward, 0.1f*angle);
             return RotateGlobal(rotation);
         }
+
     }
 }
